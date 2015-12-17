@@ -1,0 +1,45 @@
+{
+  "uuid": "33a4c5bf-3aad-46e6-a000-4dd72a3fc3e1",
+  "shortName": "Xbox Live Friends",
+  "longName": "Xbox Live Friends",
+  "companyName": "Curtis Kroetsch",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "capabilities": [
+    "configurable"
+  ],
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {},
+  "resources": {
+    "media": [
+      {
+        "menuIcon": true,
+	"type":"png",
+	"file": "images/menu_icon.png",
+        "name": "IMAGE_MENU_ICON"
+      },
+      {
+        "file": "images/logo_splash.png",
+        "name": "IMAGE_LOGO_SPLASH",
+        "type": "png"
+      },
+      {
+        "file": "images/tile_splash.png",
+        "name": "IMAGE_TILE_SPLASH",
+        "type": "png"
+      },
+      {
+        "file": "fonts/UbuntuMono-Regular.ttf",
+        "name": "MONO_FONT_14",
+        "type": "font"
+      }
+    ]
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3"
+}

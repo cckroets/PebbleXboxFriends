@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Slate Example Configuration</title>
+  <link rel='stylesheet' type='text/css' href='css/slate.min.css'>
+  <script src='js/slate.min.js'></script>
+  <script src='js/jquery-1.11.3.min.js'></script>
+  <style>
+  .title {
+    padding: 15px 10px;
+    text-transform: uppercase;
+    font-family: 'PT Sans', sans-serif;
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #888888;
+    text-align: center;
+  }
+  </style>
+  </head>
+
+  <body>
+    <h1 class='title'>Xbox Friends List</h1>
+
+    <div class='item-container'>
+      <div class='item-container-header'>Identity</div>
+      <div class='item-container-content'>
+        <label class='item'>
+          <div class "item-input-wrapper item-input-wrapper-button">
+            <input id='gamertag_textbox' type='text' class='item-input' name="input-1" placeholder="Enter Gamertag">
+          </div>
+          <input id='load_friends_button' type='button' class='item-button item-input-button' value="LOAD">
+        </label>
+      </div>
+      <div class='item-container-footer'>
+        Friends list access may depend on your account settings.
+      </div>
+    </div>
+
+    <div class="item-container">
+      <div class="item-container-header">Friends</div>
+      <img id="loading" hidden src="images/loading.gif">
+      <div class="item-container-content" id="friends-container">
+        <!-- Example Checkboxes:
+        <label class="item">
+          Example Item
+          <input type="checkbox" class="item-checkbox" name="checkbox-1">
+        </label>
+        <label class="item">
+          Example Item
+          <input type="checkbox" class="item-checkbox" name="checkbox-2" checked>
+        </label> -->
+      </div>
+    </div>
+
+    <div class='item-container'>
+      <div class='button-container'>
+        <input id='submit_button' type='button' class='item-button' value='SUBMIT'>
+      </div>
+    </div>
+  </body>
+  <script>
+  var maxFriends = 5;
+
+  function getQueryParam(variable, defaultValue) {
+    var query = location.search.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+      var pair = vars[i].split('=');
+      if (pair[0] === variable) {
+        return decodeURIComponent(pair[1]);
+      }
+    }
+    return defaultValue || false;
+  }
+
+  function addHeader(request) {
+    request.setRequestHeader('X-AUTH', '76bf38a397e17fd0113dc31406eb21669a542029'); 
+  }
+
+  function loadFriends(data, addDiv) {
+    $("#friends-container").empty();
+    for (var i = 0; i < data.length; i++) {
+      var friendGamertag = data[i].Gamertag;
+      var friendXuid = data[i].id;
+      console.log("Friend " + i + ": xuid=" + friendXuid + ", gamertag=" + friendGamertag);
+      var item = $('<label>')
+      .text(friendGamertag)
+      .addClass('item')
+      .append($('<input>', { id: friendXuid, gamertag: friendGamertag, type:'checkbox' })
+        .addClass('item-checkbox'));
+      if (addDiv) {
+        item.append($('<div>').addClass('item-styled-checkbox'));
+      }
+      item.prepend($('<img>', { src: data[i].GameDisplayPicRaw }).css({ "height": "20px", "vertical-align" : "middle", "padding-right" : "10px" }));
+      $("#friends-container").append(item);
+    }
+  }
+
+  function loadFriendsFromNetwork(xuid) {
+    $('#loading').attr('hidden', false);
+    $("#friends-container").empty();
+    $.ajax({
+      url: "https://xboxapi.com/v2/" + xuid + "/friends",
+      type: 'GET',
+      beforeSend: addHeader,
+      success: function(data, status, xhr) {
+        $('#loading').attr('hidden', true);
+        console.log('Load friends success: ' + data);
+        loadFriends(data, true);
+        localStorage['allFriends'] = JSON.stringify(data);
+      },
+      error: function(xhr, status, error) {
+        $('#loading').attr('hidden', true); 
+        console.log('Load friends failure: xhr=' + xhr + ", status=" + status + ", error=" + error);
+      }
+    })
+  }
+
+  function loadFriendsFromLocal() {
+    console.log('Loading saved friends : ' + localStorage['allFriends']); 
+    if (typeof localStorage['allFriends'] === 'undefined') {
+      console.log('no saved friends');
+      return;
+    }
+
+    var data = JSON.parse(localStorage['allFriends']);
+    loadFriends(data, false);
+
+    var chosenFriends = JSON.parse(localStorage['chosenFriends']);
+    for (var i = 0; i < chosenFriends.length; i++) {
+      var friendXuid = chosenFriends[i].xuid;
+      $("#" + friendXuid).attr('checked', true);
+    }
+  }
+
+  var loadFriendsButton = document.getElementById('load_friends_button');
+  var gamertagInput = document.getElementById('gamertag_textbox');
+  loadFriendsButton.addEventListener('click', function() {
+    var gamertag = gamertagInput.value;
+    console.log('Load friends: gamertag = ' + gamertag);
+    $.ajax({
+      url: "https://xboxapi.com/v2/xuid/" + gamertag,
+      type: 'GET',
+      beforeSend: addHeader,
+      success: function(data, status, xhr) {
+        console.log('Load gamertag success: ' + data);
+        localStorage['gamertag'] = gamertag;
+        localStorage['xuid'] = data;
+        loadFriendsFromNetwork(data);
+      },
+      error: function(xhr, status, error) {
+        console.log('Load gamertag failure: xhr=' + xhr + ", status=" + status + ", error=" + error);
+        gamertagInput.value = error;
+      }
+    });
+  });
+ 
+  var submitButton = document.getElementById('submit_button');
+  submitButton.addEventListener('click', function() {
+    console.log('Submit');
+    var chosenFriends = [];
+    $('input[type=checkbox]').each(function() { 
+      if (this.checked) {
+        chosenFriends.push({ gamertag: $(this).attr("gamertag"), xuid: this.id });
+      }
+    });
+
+    if (chosenFriends.length > maxFriends) {
+      alert('You may only choose up to ' + maxFriends + ' friends.');
+      return;
+    }
+
+    localStorage['chosenFriends'] = JSON.stringify(chosenFriends);
+    var configData = {
+      'xuid' : localStorage['xuid'],
+      'gamertag' : localStorage['gamertag'],
+      'chosenFriends' : chosenFriends
+    };
+    // Set the return URL depending on the runtime environment
+    var return_to = getQueryParam('return_to', 'pebblejs://close#');
+    document.location = return_to + encodeURIComponent(JSON.stringify(configData));
+  });
+
+  (function() {
+    // Load any previously saved configuration, if available
+    if(localStorage['gamertag']) {
+      gamertagInput.value = localStorage['gamertag'];
+      loadFriendsFromLocal();
+    }
+  })();
+  </script>
+</html>

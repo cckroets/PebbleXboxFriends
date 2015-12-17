@@ -1,0 +1,9 @@
+{
+  "firebase": "pebble-xbox-friends",
+  "public": "public",
+  "ignore": [
+    "firebase.json",
+    "**/.*",
+    "**/node_modules/**"
+  ]
+}
